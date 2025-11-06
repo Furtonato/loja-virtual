@@ -51,7 +51,7 @@ try {
         FROM produtos
         WHERE destaque = true
         ORDER BY nome ASC
-        LIMIT 8
+        
     ");
     $produtos_destaque = $stmt_destaque->fetchAll();
 } catch (PDOException $e) {
@@ -66,7 +66,7 @@ try {
         FROM produtos
         WHERE mais_vendido = true
         ORDER BY nome ASC
-        LIMIT 8
+        
     ");
     $produtos_mais_vendidos = $stmt_mv->fetchAll();
 } catch (PDOException $e) {
