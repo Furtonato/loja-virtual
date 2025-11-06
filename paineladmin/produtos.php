@@ -60,16 +60,47 @@ if (isset($_GET['edit_marca'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_midia'])) {
     $produto_id_midia = (int)$_POST['produto_id_midia'];
     $tipo = trim($_POST['tipo']);
-    $url = trim($_POST['url']);
+    $url = ''; // Reseta a variável
+
+    // --- LÓGICA DE UPLOAD DA MÍDIA DA GALERIA ---
+     if ($tipo == 'imagem' && isset($_FILES['midia_arquivo']) && $_FILES['midia_arquivo']['error'] == 0) {
+         $upload_dir = '../uploads/produtos/';
+         if (!is_dir($upload_dir)) {
+             mkdir($upload_dir, 0755, true);
+         }
+
+         $nome_arquivo = $_FILES['midia_arquivo']['name'];
+         $extensao = pathinfo($nome_arquivo, PATHINFO_EXTENSION);
+         $nome_seguro = uniqid('midia_') . '.' . htmlspecialchars(strtolower($extensao));
+         $caminho_completo = $upload_dir . $nome_seguro;
+
+         $tipos_permitidos = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+         if (in_array(strtolower($extensao), $tipos_permitidos)) {
+             if (move_uploaded_file($_FILES['midia_arquivo']['tmp_name'], $caminho_completo)) {
+                 $url = 'uploads/produtos/' . $nome_seguro;
+             } else {
+                 $message .= " Erro ao mover o arquivo de mídia."; $message_type = "error";
+             }
+         } else {
+             $message .= " Tipo de arquivo de mídia não permitido (permitidos: jpg, jpeg, png, gif, webp)."; $message_type = "error";
+         }
+     } elseif ($tipo == 'video' && !empty($_POST['url'])) {
+         // Se for vídeo, apenas pega a URL digitada
+         $url = trim($_POST['url']);
+     }
+     // --- FIM DA LÓGICA DE UPLOAD ---
     $ordem = (int)$_POST['ordem'];
-    if (!empty($produto_id_midia) && !empty($tipo) && !empty($url)) {
+    if (!empty($produto_id_midia) && !empty($tipo) && !empty($url)) { // A $url agora vem do upload ou do POST
         try {
             $sql = "INSERT INTO produto_midia (produto_id, tipo, url, ordem) VALUES (:pid, :tipo, :url, :ordem)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['pid' => $produto_id_midia, 'tipo' => $tipo, 'url' => $url, 'ordem' => $ordem]);
             $message = "Mídia adicionada com sucesso!"; $message_type = "success";
         } catch (PDOException $e) { $message = "Erro ao salvar mídia: " . $e->getMessage(); $message_type = "error"; }
-    } else { $message = "Tipo e URL são obrigatórios para adicionar mídia."; $message_type = "error"; }
+    } else { if (empty($message)) { // Evita sobrepor mensagens de erro do upload
+             $message = "Erro ao adicionar mídia. Se for imagem, o arquivo é obrigatório. Se for vídeo, a URL é obrigatória."; $message_type = "error";
+         } }
     $_SESSION['flash_message'] = $message;
     $_SESSION['flash_type'] = $message_type;
     header("Location: produtos.php?edit_produto=" . $produto_id_midia . "#section-midia"); exit;
@@ -99,7 +130,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
     $descricao = trim($_POST['descricao']);
     $preco = filter_var($_POST['preco'], FILTER_VALIDATE_FLOAT);
     $estoque = filter_var($_POST['estoque'], FILTER_VALIDATE_INT);
-    $imagem_url = trim($_POST['imagem_url']);
+    // --- LÓGICA DE UPLOAD DA IMAGEM PRINCIPAL ---
+ $imagem_url = trim($_POST['imagem_url_existente']); // Começa com a imagem existente
+
+ if (isset($_FILES['imagem_arquivo']) && $_FILES['imagem_arquivo']['error'] == 0) {
+     // 1. Define o diretório de upload (relativo à raiz do site, não ao paineladmin)
+     $upload_dir = '../uploads/produtos/';
+     if (!is_dir($upload_dir)) {
+         mkdir($upload_dir, 0755, true);
+     }
+
+     // 2. Gera um nome de arquivo único
+     $nome_arquivo = $_FILES['imagem_arquivo']['name'];
+     $extensao = pathinfo($nome_arquivo, PATHINFO_EXTENSION);     $nome_seguro = uniqid('prod_') . '.' . htmlspecialchars(strtolower($extensao));
+     $caminho_completo = $upload_dir . $nome_seguro;
+
+     // 3. Validação de tipo de imagem
+     $tipos_permitidos = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+     if (in_array(strtolower($extensao), $tipos_permitidos)) {
+
+         // 4. Move o arquivo
+         if (move_uploaded_file($_FILES['imagem_arquivo']['tmp_name'], $caminho_completo)) {
+             // 5. Define a URL para salvar no banco (remove o '../')
+             $imagem_url = 'uploads/produtos/' . $nome_seguro;
+         } else {
+             $message .= " Erro ao mover o arquivo de imagem principal."; $message_type = "error";
+         }
+     } else {
+         $message .= " Tipo de arquivo de imagem principal não permitido (permitidos: jpg, jpeg, png, gif, webp)."; $message_type = "error";
+     }
+ }
+ // --- FIM DA LÓGICA DE UPLOAD ---
     $marca_id = (!empty($_POST['marca_id']) && $_POST['marca_id'] !== '0') ? (int)$_POST['marca_id'] : null;
     $id = isset($_POST['id']) ? (int)$_POST['id'] : null;
 
@@ -465,7 +526,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <div class="crud-section" id="section-produtos">
                     <h3><?php echo $is_editing_produto ? 'Editar Produto' : 'Adicionar Novo Produto'; ?></h3>
                     <div class="form-container">
-                        <form action="produtos.php#tab-produtos" method="POST">
+                        <form action="produtos.php#tab-produtos" method="POST" enctype="multipart/form-data">
                             <?php if ($is_editing_produto): ?>
                                 <input type="hidden" name="id" value="<?php echo $edit_produto['id']; ?>">
                             <?php endif; ?>
@@ -506,8 +567,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="imagem_url">URL da Imagem Principal (Capa):</label>
-                                    <input type="text" id="imagem_url" name="imagem_url" value="<?php echo htmlspecialchars($edit_produto['imagem_url'] ?? ''); ?>" placeholder="https://... ou /uploads/imagem.jpg">
+                                    <label for="imagem_arquivo">Imagem Principal (Upload):</label>
+                                    <input type="file" id="imagem_arquivo" name="imagem_arquivo">
+
+                                        <input type="hidden" name="imagem_url_existente" value="<?php echo htmlspecialchars($edit_produto['imagem_url'] ?? ''); ?>">
+
+                                   <?php if ($is_editing_produto && !empty($edit_produto['imagem_url'])): ?>
+                                      <p style="margin-top: 10px; color: var(--light-text-color);">
+                                          Imagem atual: <br>
+                                          <img src="../<?php echo htmlspecialchars($edit_produto['imagem_url']); ?>" alt="Preview" style="max-width: 100px; height: auto; margin-top: 5px; border-radius: 4px; background: #fff; padding: 3px;">
+                                      </p>
+                                  <?php endif; ?>
                                 </div>
                             </div>
 
@@ -551,7 +621,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <h3>Mídia da Galeria (Imagens Adicionais e Vídeo)</h3>
                         <div class="form-container">
                             <h4>Adicionar Nova Mídia para "<?php echo htmlspecialchars($edit_produto['nome']); ?>"</h4>
-                            <form action="produtos.php?edit_produto=<?php echo $edit_produto['id']; ?>#section-midia" method="POST">
+                            <form action="produtos.php?edit_produto=<?php echo $edit_produto['id']; ?>#section-midia" method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="produto_id_midia" value="<?php echo $edit_produto['id']; ?>">
                                 <div class="form-grid">
                                     <div class="form-group">
@@ -562,8 +632,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="url">URL</label>
-                                        <input type="text" id="url" name="url" placeholder="https://vimeo.com/12345 or /uploads/img.jpg" required>
+                                        <label for="midia_arquivo">Arquivo de Mídia (Upload)</label>
+                                      <input type="file" id="midia_arquivo" name="midia_arquivo">
+                                            <label for="url" style="margin-top:10px;">URL (Apenas para Vídeo Vimeo)</label>
+                                       <input type="text" id="url" name="url" placeholder="https://vimeo.com/12345">
+                                       <p style="font-size: 0.8em; color: var(--light-text-color);">Use Upload para Imagens. Use URL para Vídeos.</p>
                                     </div>
                                     <div class="form-group">
                                         <label for="ordem">Ordem</label>
@@ -858,4 +931,5 @@ $current_page = basename($_SERVER['PHP_SELF']);
     });
 </script>
 </body>
-</html>
+</html                        
+
