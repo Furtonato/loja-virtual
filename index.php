@@ -1,4 +1,3 @@
-
 <?php
 // index.php
 if (session_status() === PHP_SESSION_NONE) {
@@ -364,6 +363,87 @@ function getLinkTagClose($banner) {
              .product-item img, .product-image-container img { height: 120px; }
              .product-item .price { font-size: 1.3rem; }
         }
+
+        /* --- NOVOS ESTILOS DE/POR --- */
+
+/* Ajusta o contêiner da imagem para o selo */
+.product-image-container {
+    position: relative;
+    /* overflow: hidden; (Já deve existir) */
+    /* margin-bottom: 15px; (Já deve existir) */
+}
+
+/* O selo "Baixou %" */
+.discount-badge {
+    position: absolute; /* Flutua sobre a imagem */
+    top: 10px;      /* 10px do topo */
+    left: 10px;     /* 10px da esquerda */
+    background-color: #e74c3c; /* Vermelho (cor da Casas Bahia) */
+    color: white;
+    padding: 3px 8px;
+    font-size: 13px; /* Tamanho da fonte do selo */
+    font-weight: bold;
+    border-radius: 4px;
+    z-index: 10;      /* Fica na frente da imagem */
+    line-height: 1;
+}
+
+/* Contêiner que segura os dois preços e o frete */
+.product-item .price-container {
+    margin-top: auto; /* Empurra para baixo (MUITO IMPORTANTE) */
+    padding-top: 10px;
+    line-height: 1.1; /* Espaçamento entre linhas */
+}
+
+/* O preço antigo "De:" (riscado) */
+.product-item .preco-antigo {
+    font-size: 1rem;  /* Tamanho pequeno */
+    color: #7f8c8d; /* Cinza */
+    text-decoration: line-through; /* O Riscado! */
+    display: block;   /* Fica na linha de cima */
+}
+
+/* O preço novo "Por:" (grandão) */
+.product-item .preco-atual {
+    font-size: 1.75rem; /* Tamanho grande */
+    color: var(--green-accent); /* Usa a cor verde do seu site */
+    font-weight: 700;
+}
+
+/* Contêiner da imagem de frete grátis */
+.frete-gratis-container {
+    margin-top: 8px;
+    height: 20px; /* Altura fixa para alinhar todos os cards */
+    text-align: left; /* Alinha a imagem à esquerda */
+}
+
+.frete-gratis-container img {
+    max-width: 120px; /* Limita a largura da sua imagem */
+    height: auto;
+    max-height: 20px; /* Garante que ela não passe de 20px de altura */
+    object-fit: contain; /* Ajusta a imagem sem distorcer */
+}
+
+/* --- Ajustes para Celular (Responsivo) --- */
+@media (max-width: 768px) {
+    .product-item .preco-atual { 
+        font-size: 1.5rem; /* Diminui o preço no celular */
+    }
+    .product-item .preco-antigo { 
+        font-size: 0.9rem; /* Diminui o preço riscado no celular */
+    }
+    .frete-gratis-container, .frete-gratis-container img {
+         height: 18px; /* Diminui um pouco a imagem de frete no celular */
+         max-height: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-item .preco-atual { 
+        font-size: 1.3rem; 
+    }
+}
+/* --- FIM NOVOS ESTILOS --- */
     </style>
 </head>
 <body>
