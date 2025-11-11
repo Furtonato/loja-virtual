@@ -665,6 +665,51 @@ try {
             .avaliacao-header { flex-direction: column; align-items: flex-start; gap: 5px; }
             .avaliador-info { width: 100%; }
         }
+        /* --- CSS DE/POR PARA PÁGINA DE DETALHE --- */
+.discount-badge-detail {
+    background-color: #e74c3c; /* Vermelho */
+    color: white;
+    padding: 4px 10px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 4px;
+    display: inline-block; /* Para não ocupar a linha toda */
+    margin-bottom: 10px;
+}
+
+.price-container-detail {
+    line-height: 1.2;
+    margin: 20px 0; /* Substitui a margem do .price original */
+}
+
+/* Preço "De:" (riscado) */
+.price-container-detail .preco-antigo-detail {
+    font-size: 1.2rem; /* Um pouco maior que no card */
+    color: #7f8c8d; /* Cinza */
+    text-decoration: line-through;
+    display: block;
+}
+
+/* Preço "Por:" (grande) */
+.price-container-detail .preco-atual-detail {
+    font-size: 2.5rem; /* Tamanho grande original do .price */
+    color: var(--green-accent); /* Cor verde do site */
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.frete-gratis-container-detail {
+    margin-top: 15px;
+    height: 25px; /* Altura da imagem de frete */
+}
+
+.frete-gratis-container-detail img {
+    max-width: 150px;
+    height: auto;
+    max-height: 25px;
+    object-fit: contain;
+}
+/* --- FIM CSS DETALHE --- */
     </style>
 </head>
 <body>
@@ -763,7 +808,40 @@ try {
                     </div>
                     <?php endif; ?>
                     <?php if ($is_disponivel): ?>
-                        <p class="price">R$ <?php echo number_format($produto['preco'], 2, ',', '.'); ?></p>
+                        <?php
+// --- Início da Lógica de Preço De/Por ---
+$preco_atual = $produto['preco'];
+$preco_antigo = $produto['preco_antigo'] ?? null; // Já buscamos isso no SELECT p.*
+$desconto_percentual = 0;
+
+$tem_desconto = !empty($preco_antigo) && $preco_antigo > $preco_atual && $preco_antigo > 0;
+
+if ($tem_desconto) {
+    // Cálculo automático da porcentagem
+    $desconto_percentual = round((($preco_antigo - $preco_atual) / $preco_antigo) * 100);
+}
+// --- Fim da Lógica de Preço De/Por ---
+?>
+
+<?php if ($tem_desconto) : ?>
+    <div class="discount-badge-detail">
+        Baixou <?php echo $desconto_percentual; ?>%
+    </div>
+<?php endif; ?>
+
+<div class="price-container-detail">
+    <?php if ($tem_desconto) : ?>
+        <span class="preco-antigo-detail">De: R$ <?php echo number_format($preco_antigo, 2, ',', '.'); ?></span>
+    <?php endif; ?>
+    
+    <p class="price preco-atual-detail" style="margin: 0; padding: 0; line-height: 1.1;">
+        Por: R$ <?php echo number_format($preco_atual, 2, ',', '.'); ?>
+    </p>
+</div>
+
+<div class="frete-gratis-container-detail">
+    <img src="assets/img/frete-gratis.jpg" alt="Frete Grátis">
+</div>
 
                         <form id="add-to-cart-form" onsubmit="return false;">
                             <input type="hidden" id="produto-id" value="<?php echo $produto_id; ?>">
