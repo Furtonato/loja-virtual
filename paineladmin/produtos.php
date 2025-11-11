@@ -123,7 +123,6 @@ if (isset($_GET['delete_midia'])) {
 // ==========================================================
 // LÓGICA CRUD PARA PRODUTOS
 // ==========================================================
-
 // 1P. ADICIONAR ou ATUALIZAR PRODUTO
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
     $nome = trim($_POST['nome']);
@@ -169,7 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
      }
  }
  // --- FIM DA LÓGICA DE UPLOAD ---
-    $marca_id = (!empty($_POST['marca_id']) && $_POST['marca_id'] !== '0') ? (int)$$_POST['marca_id'] : null;
+
+    // --- CORREÇÃO APLICADA AQUI ---
+    $marca_id = (!empty($_POST['marca_id']) && $_POST['marca_id'] !== '0') ? (int)$_POST['marca_id'] : null;
+    // --- FIM DA CORREÇÃO ---
+
     $id = isset($_POST['id']) ? (int)$_POST['id'] : null;
 
     // Checkboxes (Flags)
@@ -964,5 +967,4 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </script>
 </body>
 </html                        
-
 
