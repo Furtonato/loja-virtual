@@ -129,6 +129,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
     $nome = trim($_POST['nome']);
     $descricao = trim($_POST['descricao']);
     $preco = filter_var($_POST['preco'], FILTER_VALIDATE_FLOAT);
+
+    // --- NOVO: Captura o preco_antigo ---
+    $preco_antigo = filter_var($_POST['preco_antigo'], FILTER_VALIDATE_FLOAT);
+    if ($preco_antigo === false || $preco_antigo <= 0) {
+        $preco_antigo = null; // Garante que é nulo se for vazio ou 0
+    }
+    // --- FIM NOVO ---
+
     $estoque = filter_var($_POST['estoque'], FILTER_VALIDATE_INT);
     // --- LÓGICA DE UPLOAD DA IMAGEM PRINCIPAL ---
  $imagem_url = trim($_POST['imagem_url_existente']); // Começa com a imagem existente
@@ -161,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
      }
  }
  // --- FIM DA LÓGICA DE UPLOAD ---
-    $marca_id = (!empty($_POST['marca_id']) && $_POST['marca_id'] !== '0') ? (int)$_POST['marca_id'] : null;
+    $marca_id = (!empty($_POST['marca_id']) && $_POST['marca_id'] !== '0') ? (int)$$_POST['marca_id'] : null;
     $id = isset($_POST['id']) ? (int)$_POST['id'] : null;
 
     // Checkboxes (Flags)
@@ -177,8 +185,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
 
 
     if (empty($nome)) { $message = "O campo 'Nome' é obrigatório."; $message_type = "error";
-    } elseif ($preco === false || $preco < 0) { $message = "O campo 'Preço' é obrigatório e deve ser um número válido (ex: 19.99)."; $message_type = "error";
+    } elseif ($preco === false || $preco < 0) { $message = "O campo 'Preço (Por:)' é obrigatório e deve ser um número válido (ex: 19.99)."; $message_type = "error";
     } elseif ($estoque === false || $estoque < 0) { $message = "O campo 'Estoque' é obrigatório e deve ser um número inteiro igual ou maior que zero."; $message_type = "error";
+
+    // --- NOVO: Validação ---
+    } elseif ($preco_antigo !== null && $preco_antigo <= $preco) {
+        $message = "O 'Preço Antigo (De:)' deve ser MAIOR que o 'Preço (Por:)'."; $message_type = "error";
+    // --- FIM NOVO ---
+
     } else {
         try {
             if ($id) { // UPDATE
@@ -186,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
                             nome = :nome,
                             descricao = :descricao,
                             preco = :preco,
+                            preco_antigo = :preco_antigo, -- <-- NOVO
                             estoque = :estoque,
                             imagem_url = :imagem_url,
                             destaque = :destaque,
@@ -198,13 +213,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
                 $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             } else { // INSERT
                 $sql = "INSERT INTO produtos (
-                            nome, descricao, preco, estoque, imagem_url,
+                            nome, descricao, preco, preco_antigo, -- <-- NOVO
+                            estoque, imagem_url,
                             destaque, marca_id, ativo, mais_vendido,
                             is_lancamento, -- <-- NOVO
                             criado_em
                         )
                         VALUES (
-                            :nome, :descricao, :preco, :estoque, :imagem_url,
+                            :nome, :descricao, :preco, :preco_antigo, -- <-- NOVO
+                            :estoque, :imagem_url,
                             :destaque, :marca_id, :ativo, :mais_vendido,
                             :is_lancamento, -- <-- NOVO
                             NOW()
@@ -214,6 +231,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
             $stmt->bindParam(':nome', $nome, PDO::PARAM_STR);
             $stmt->bindParam(':descricao', $descricao, PDO::PARAM_STR);
             $stmt->bindParam(':preco', $preco);
+
+            // --- NOVO: bindParam para preco_antigo ---
+            // (Como seu DB é PostgreSQL, usamos PARAM_STR para decimal/numeric)
+            $stmt->bindParam(':preco_antigo', $preco_antigo, $preco_antigo === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            // --- FIM NOVO ---
+
             $stmt->bindParam(':estoque', $estoque, PDO::PARAM_INT);
             $stmt->bindParam(':imagem_url', $imagem_url, PDO::PARAM_STR);
             $stmt->bindParam(':marca_id', $marca_id, $marca_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
@@ -242,7 +265,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['salvar_produto'])) {
         }
     }
 }
-
 // 2P. DELETAR PRODUTO
 if (isset($_GET['delete_produto'])) {
     $id = (int)$_GET['delete_produto'];
@@ -542,10 +564,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             </div>
 
                             <div class="form-grid">
-                                 <div class="form-group">
-                                    <label for="preco">Preço (R$):</label>
-                                    <input type="number" id="preco" name="preco" step="0.01" min="0" value="<?php echo htmlspecialchars($edit_produto['preco'] ?? '0.00'); ?>" required placeholder="19.99">
-                                </div>
+                            <div class="form-group">
+                                <label for="preco">Preço (Por:)</label>
+                                <input type="number" id="preco" name="preco" step="0.01" min="0" value="<?php echo htmlspecialchars($edit_produto['preco'] ?? '0.00'); ?>" required placeholder="Ex: 100.00">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="preco_antigo">Preço Antigo (De:)</label>
+                                <input type="number" id="preco_antigo" name="preco_antigo" step="0.01" min="0" value="<?php echo htmlspecialchars($edit_produto['preco_antigo'] ?? ''); ?>" placeholder="Opcional: Ex: 150.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="estoque">Estoque:</label>
+                                <input type="number" id="estoque" name="estoque" min="0" value="<?php echo htmlspecialchars($edit_produto['estoque'] ?? '0'); ?>" required>
+                            </div>
+                            </div>
                                 <div class="form-group">
                                     <label for="estoque">Estoque:</label>
                                     <input type="number" id="estoque" name="estoque" min="0" value="<?php echo htmlspecialchars($edit_produto['estoque'] ?? '0'); ?>" required>
@@ -932,4 +964,5 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </script>
 </body>
 </html                        
+
 
