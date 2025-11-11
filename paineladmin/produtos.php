@@ -365,7 +365,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script> -->
+
 
     <style>
         /* ==========================================================
@@ -856,8 +857,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <script>
     // --- JavaScript para Partículas ---
     // MANTIDO: Inicializa a biblioteca particlesJS para o fundo animado
+    /*
     particlesJS('particles-js', {"particles":{"number":{"value":60,"density":{"enable":true,"value_area":800}},"color":{"value":"#4a69bd"},"shape":{"type":"circle"},"opacity":{"value":0.4,"random":false},"size":{"value":3,"random":true},"line_linked":{"enable":true,"distance":150,"color":"#ffffff","opacity":0.1,"width":1},"move":{"enable":true,"speed":1.5,"direction":"none","random":false,"straight":false,"out_mode":"out","bounce":false}},"interactivity":{"detect_on":"canvas","events":{"onhover":{"enable":true,"mode":"repulse"},"onclick":{"enable":true,"mode":"push"},"resize":true}},"retina_detect":true});
-
+    */
     // --- JavaScript Específico da Página ---
     document.addEventListener('DOMContentLoaded', () => {
         // A Lógica de Menu e Perfil foi removida, pois está no admin_sidebar.php
@@ -967,4 +969,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </script>
 </body>
 </html                        
+
+
 
