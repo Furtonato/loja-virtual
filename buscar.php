@@ -21,7 +21,7 @@ if (!empty($termo_busca)) {
         // 2. Preparar a query
         // Usamos ILIKE para busca case-insensitive (Padrão PostgreSQL)
         // Usamos '%' para buscar palavras que contenham o termo
-        $sql = "SELECT id, nome, preco, imagem_url, ativo, estoque
+        $sql = "SELECT id, nome, preco, preco_antigo, imagem_url, ativo, estoque
                 FROM produtos
                 WHERE (nome ILIKE :termo OR descricao ILIKE :termo)
                 AND ativo = true
@@ -234,35 +234,66 @@ if (!empty($termo_busca)) {
                 <?php foreach ($resultados as $produto): ?>
                     <?php $is_disponivel = ($produto['ativo'] && $produto['estoque'] > 0); ?>
                     <div class="product-item">
-                        <a href="produto_detalhe.php?id=<?php echo $produto['id']; ?>">
-                            <div class="product-image-container">
-                                <?php if (!empty($produto['imagem_url'])): ?>
-                                    <img src="<?php echo htmlspecialchars($produto['imagem_url']); ?>" alt="<?php echo htmlspecialchars($produto['nome']); ?>">
-                                <?php else: ?>
-                                    <img src="uploads/placeholder.png" alt="<?php echo htmlspecialchars($produto['nome']); ?>">
-                                <?php endif; ?>
+    <a href="produto_detalhe.php?id=<?php echo $produto['id']; ?>">
 
-                                <?php if ($is_disponivel): ?>
-                                    <div class="product-hover-buttons">
-                                        <button type="button" class="btn-hover btn-spy" data-id="<?php echo $produto['id']; ?>">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
-                                            ESPIAR
-                                        </button>
-                                        <button type="button" class="btn-hover btn-buy-index" data-id="<?php echo $produto['id']; ?>">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
-                                            COMPRAR
-                                        </button>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="product-hover-buttons esgotado">
-                                        <span class="btn-esgotado">Esgotado</span>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <h3><?php echo htmlspecialchars($produto['nome']); ?></h3>
-                            <p class="price">R$ <?php echo number_format($produto['preco'], 2, ',', '.'); ?></p>
-                        </a>
-                    </div>
+        <div class="product-image-container">
+            <?php
+            // --- Início da Lógica de Preço De/Por ---
+            $preco_atual = $produto['preco'];
+            $preco_antigo = $produto['preco_antigo'] ?? null;
+            $desconto_percentual = 0;
+
+            $tem_desconto = !empty($preco_antigo) && $preco_antigo > $preco_atual && $preco_antigo > 0;
+
+            if ($tem_desconto) {
+                $desconto_percentual = round((($preco_antigo - $preco_atual) / $preco_antigo) * 100);
+            }
+            // --- Fim da Lógica de Preço De/Por ---
+            ?>
+
+            <?php if ($tem_desconto) : ?>
+                <div class="discount-badge">
+                    Baixou <?php echo $desconto_percentual; ?>%
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($produto['imagem_url'])): ?>
+                <img src="<?php echo htmlspecialchars($produto['imagem_url']); ?>" alt="<?php echo htmlspecialchars($produto['nome']); ?>">
+            <?php else: ?>
+                <img src="uploads/placeholder.png" alt="<?php echo htmlspecialchars($produto['nome']); ?>">
+            <?php endif; ?>
+
+            <?php if ($is_disponivel): ?>
+                <div class="product-hover-buttons">
+                    <button type="button" class="btn-hover btn-spy" data-id="<?php echo $produto['id']; ?>">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                        ESPIAR
+                    </button>
+                    <button type="button" class="btn-hover btn-buy-index" data-id="<?php echo $produto['id']; ?>">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                        COMPRAR
+                    </button>
+                </div>
+            <?php else: ?>
+                <div class="product-hover-buttons esgotado">
+                    <span class="btn-esgotado">Esgotado</span>
+                </div>
+            <?php endif; ?>
+        </div>
+        <h3><?php echo htmlspecialchars($produto['nome']); ?></h3>
+
+        <div class="price-container">
+            <?php if ($tem_desconto) : ?>
+                <span class="preco-antigo">R$ <?php echo number_format($preco_antigo, 2, ',', '.'); ?></span>
+            <?php endif; ?>
+            <span class="preco-atual">R$ <?php echo number_format($preco_atual, 2, ',', '.'); ?></span>
+        </div>
+
+        <div class="frete-gratis-container">
+            <img src="assets/img/frete-gratis.jpg" alt="Frete Grátis">
+        </div>
+    </a>
+</div>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
